@@ -19,7 +19,7 @@ EOF
 if [[ ! -f "$runner" ]]; then
   echo "[$node_name] missing runner script at $runner"
   echo "[$node_name] create that file to start your OPC UA application"
-  exec sleep infinity
+  exit 1
 fi
 
 exec /bin/bash "$runner" "$@"

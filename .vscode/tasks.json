@@ -1,77 +1,34 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Testbed: Up",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "./scripts/testbed.sh",
-        "up"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "Testbed: Rebuild",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "./scripts/testbed.sh",
-        "rebuild"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "Testbed: Down",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "./scripts/testbed.sh",
-        "down"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "Testbed: Logs",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "./scripts/testbed.sh",
-        "logs"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "Testbed: Status",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "./scripts/testbed.sh",
-        "ps"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "Testbed: Shell opc-node-a",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "./scripts/testbed.sh",
-        "shell",
-        "opc-node-a"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "Testbed: Shell opc-node-b",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "./scripts/testbed.sh",
-        "shell",
-        "opc-node-b"
-      ],
-      "problemMatcher": []
-    }
-  ]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Testbed: Run Live",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "./scripts/testbed.sh"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Testbed: Rebuild Live",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "./scripts/testbed.sh",
+                "rebuild"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Testbed: Down",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "./scripts/testbed.sh",
+                "down"
+            ],
+            "problemMatcher": []
+        }
+    ]
 }

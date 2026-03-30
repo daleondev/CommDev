@@ -20,10 +20,14 @@ fi
 
 case "$role" in
   server)
-    exec python3 -u /workspace/apps/opcua_server.py
+    exec python3 -u /workspace/apps/opcua_server.py serve "$@"
     ;;
   client)
-    exec python3 -u /workspace/apps/opcua_client.py
+    if [[ "$#" -gt 0 ]]; then
+      exec python3 -u /workspace/apps/opcua_client.py "$@"
+    fi
+
+    exec python3 -u /workspace/apps/opcua_client.py run
     ;;
   *)
     echo "Unsupported OPC_ROLE: $role"

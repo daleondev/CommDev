@@ -2,33 +2,45 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import os
+import time
 from datetime import datetime, timezone
 
 from asyncua import Server, ua
 
 
-INSTANCE_NAME = os.environ.get("OPC_INSTANCE_NAME", "opc-node-a")
-ENDPOINT = os.environ.get("OPC_ENDPOINT", "opc.tcp://opc-node-a:4840")
-NAMESPACE = os.environ.get("OPC_NAMESPACE", "urn:commdev:opcua")
-PORT = int(os.environ.get("OPC_PORT", "4840"))
-LOG_LEVEL = os.environ.get("OPC_LOG_LEVEL", "info")
+def env_default(name: str, fallback: str) -> str:
+    return os.environ.get(name, fallback)
 
 
-def log(message: str) -> None:
+def log(instance_name: str, message: str) -> None:
     timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    print(f"[{timestamp}] [{INSTANCE_NAME}] [server] {message}", flush=True)
+    print(f"[{timestamp}] [{instance_name}] [server] {message}", flush=True)
 
 
-async def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="CommDev OPC UA demo server")
+    parser.add_argument("command", nargs="?", choices=["serve"], default="serve")
+    parser.add_argument("--instance-name", default=env_default("OPC_INSTANCE_NAME", "opc-node-a"))
+    parser.add_argument("--endpoint", default=env_default("OPC_ENDPOINT", "opc.tcp://opc-node-a:4840"))
+    parser.add_argument("--namespace", default=env_default("OPC_NAMESPACE", "urn:commdev:opcua"))
+    parser.add_argument("--port", type=int, default=int(env_default("OPC_PORT", "4840")))
+    parser.add_argument("--log-level", default=env_default("OPC_LOG_LEVEL", "info"))
+    parser.add_argument("--heartbeat-interval", type=float, default=1.0)
+    parser.add_argument("--activity-timeout", type=float, default=8.0)
+    return parser
+
+
+async def serve(args: argparse.Namespace) -> None:
     server = Server()
     await server.init()
-    server.set_endpoint(ENDPOINT)
-    server.set_server_name(f"{INSTANCE_NAME} demo server")
+    server.set_endpoint(args.endpoint)
+    server.set_server_name(f"{args.instance_name} demo server")
     server.set_security_policy([ua.SecurityPolicyType.NoSecurity])
 
-    namespace_index = await server.register_namespace(NAMESPACE)
+    namespace_index = await server.register_namespace(args.namespace)
     demo_object = await server.nodes.objects.add_object(namespace_index, "CommDevDemo")
     heartbeat_node = await demo_object.add_variable(namespace_index, "Heartbeat", 0)
     command_node = await demo_object.add_variable(namespace_index, "Command", "bootstrap")
@@ -38,11 +50,16 @@ async def main() -> None:
 
     heartbeat = 0
     last_command = await command_node.read_value()
+    client_active = False
+    last_activity_at: float | None = None
 
-    log(f"starting endpoint={ENDPOINT} port={PORT} namespace={NAMESPACE} log_level={LOG_LEVEL}")
+    log(
+        args.instance_name,
+        f"starting endpoint={args.endpoint} port={args.port} namespace={args.namespace} log_level={args.log_level}",
+    )
 
     async with server:
-        log("server online")
+        log(args.instance_name, "server online and waiting for client activity")
 
         while True:
             heartbeat += 1
@@ -50,13 +67,36 @@ async def main() -> None:
 
             current_command = await command_node.read_value()
             if current_command != last_command:
-                ack_value = f"ack:{current_command}"
-                await ack_node.write_value(ack_value)
-                log(f"processed command={current_command!r} ack={ack_value!r}")
+                await ack_node.write_value(f"ack:{current_command}")
+
+                if not client_active:
+                    log(args.instance_name, f"client activity detected via command channel: {current_command!r}")
+
+                client_active = True
+                last_activity_at = time.monotonic()
                 last_command = current_command
 
-            await asyncio.sleep(1)
+            if (
+                client_active
+                and args.activity_timeout > 0
+                and last_activity_at is not None
+                and (time.monotonic() - last_activity_at) >= args.activity_timeout
+            ):
+                log(args.instance_name, "no recent client activity")
+                client_active = False
+                last_activity_at = None
+
+            await asyncio.sleep(args.heartbeat_interval)
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+
+    if args.command != "serve":
+        raise SystemExit(f"Unsupported command: {args.command}")
+
+    asyncio.run(serve(args))
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
