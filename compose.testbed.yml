@@ -1,0 +1,69 @@
+name: ${COMMDEV_TESTBED_NAME:-commdev-opc-testbed}
+
+x-opc-node: &opc-node
+  build:
+    context: .
+    dockerfile: .devcontainer/Dockerfile
+    target: opc-toolchain
+  init: true
+  stdin_open: true
+  tty: true
+  working_dir: /workspace
+  entrypoint:
+    - /bin/bash
+    - /workspace/scripts/start-opc-node.sh
+  networks:
+    - commdev-opc
+
+x-opc-common-env: &opc-common-env
+  OPC_BIND_HOST: 0.0.0.0
+  OPC_NAMESPACE: ${OPC_NAMESPACE:-urn:commdev:opcua}
+  OPC_LOG_LEVEL: ${OPC_LOG_LEVEL:-info}
+
+services:
+  opc-node-a:
+    <<: *opc-node
+    hostname: opc-node-a
+    environment:
+      <<: *opc-common-env
+      OPC_ROLE: server
+      OPC_INSTANCE_NAME: opc-node-a
+      OPC_PORT: 4840
+      OPC_ENDPOINT: opc.tcp://opc-node-a:4840
+      OPC_PEER_ENDPOINT: opc.tcp://opc-node-b:4841
+      OPC_DATA_DIR: /var/lib/opcua/data
+      OPC_PKI_DIR: /var/lib/opcua/pki
+    ports:
+      - "${OPC_NODE_A_HOST_PORT:-4840}:4840"
+    volumes:
+      - opc-node-a-data:/var/lib/opcua/data
+      - opc-node-a-pki:/var/lib/opcua/pki
+
+  opc-node-b:
+    <<: *opc-node
+    hostname: opc-node-b
+    environment:
+      <<: *opc-common-env
+      OPC_ROLE: client
+      OPC_INSTANCE_NAME: opc-node-b
+      OPC_PORT: 4841
+      OPC_ENDPOINT: opc.tcp://opc-node-b:4841
+      OPC_PEER_ENDPOINT: opc.tcp://opc-node-a:4840
+      OPC_DATA_DIR: /var/lib/opcua/data
+      OPC_PKI_DIR: /var/lib/opcua/pki
+    ports:
+      - "${OPC_NODE_B_HOST_PORT:-4841}:4841"
+    volumes:
+      - opc-node-b-data:/var/lib/opcua/data
+      - opc-node-b-pki:/var/lib/opcua/pki
+
+volumes:
+  opc-node-a-data:
+  opc-node-a-pki:
+  opc-node-b-data:
+  opc-node-b-pki:
+
+networks:
+  commdev-opc:
+    external: true
+    name: commdev-opc-net

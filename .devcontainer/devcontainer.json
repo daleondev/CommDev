@@ -1,0 +1,48 @@
+{
+  "name": "CommDev OPC UA",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "target": "devcontainer"
+  },
+  "workspaceFolder": "/workspaces/CommDev",
+  "overrideCommand": true,
+  "remoteUser": "vscode",
+  "initializeCommand": "docker network inspect commdev-opc-net >/dev/null 2>&1 || docker network create commdev-opc-net",
+  "runArgs": [
+    "--init",
+    "--network=commdev-opc-net",
+    "--add-host=host.docker.internal:host-gateway"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "containerEnv": {
+    "COMMDEV_SHARED_NETWORK": "commdev-opc-net",
+    "COMMDEV_TESTBED_COMPOSE_FILE": "/workspaces/CommDev/compose.testbed.yml"
+  },
+  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "files.eol": "\n",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnSave": true,
+        "cmake.configureOnOpen": false,
+        "python.defaultInterpreterPath": "/usr/bin/python3"
+      }
+    }
+  }
+}
