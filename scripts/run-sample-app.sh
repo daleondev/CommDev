@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-role="${OPC_ROLE:-}"
+role="${COMM_ROLE:-}"
 
 if [[ -z "$role" ]]; then
-  case "${OPC_INSTANCE_NAME:-}" in
-    opc-node-a)
+  case "${COMM_INSTANCE_NAME:-}" in
+    board-a)
       role="server"
       ;;
-    opc-node-b)
+    board-b)
       role="client"
       ;;
     *)
-      echo "Unable to infer OPC_ROLE for ${OPC_INSTANCE_NAME:-unknown}."
+      echo "Unable to infer COMM_ROLE for ${COMM_INSTANCE_NAME:-unknown}."
       exit 1
       ;;
   esac
@@ -30,7 +30,7 @@ case "$role" in
     exec python3 -u /workspace/apps/opcua_client.py run
     ;;
   *)
-    echo "Unsupported OPC_ROLE: $role"
+    echo "Unsupported COMM_ROLE: $role"
     exit 1
     ;;
 esac

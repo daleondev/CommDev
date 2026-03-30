@@ -32,15 +32,15 @@ def log(instance_name: str, message: str) -> None:
 
 
 def add_connection_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--instance-name", default=env_default("OPC_INSTANCE_NAME", "opc-node-b"))
-    parser.add_argument("--endpoint", default=env_default("OPC_PEER_ENDPOINT", "opc.tcp://opc-node-a:4840"))
-    parser.add_argument("--namespace", default=env_default("OPC_NAMESPACE", "urn:commdev:opcua"))
+    parser.add_argument("--instance-name", default=env_default("COMM_INSTANCE_NAME", "board-b"))
+    parser.add_argument("--endpoint", default=env_default("COMM_PEER_ENDPOINT", "opc.tcp://192.168.10.10:4840"))
+    parser.add_argument("--namespace", default=env_default("OPCUA_NAMESPACE", "urn:commdev:opcua"))
     parser.add_argument("--timeout", type=float, default=5.0)
-    parser.add_argument("--log-level", default=env_default("OPC_LOG_LEVEL", "info"))
+    parser.add_argument("--log-level", default=env_default("COMM_LOG_LEVEL", "info"))
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CommDev OPC UA demo client")
+    parser = argparse.ArgumentParser(description="CommDev sample OPC UA client")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser("run", help="Run the continuous client loop")

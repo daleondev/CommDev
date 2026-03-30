@@ -1,69 +1,52 @@
-name: ${COMMDEV_TESTBED_NAME:-commdev-opc-testbed}
+name: ${COMMDEV_TESTBED_NAME:-commdev-comms-testbed}
 
-x-opc-node: &opc-node
+x-board-service: &board-service
   build:
     context: .
     dockerfile: .devcontainer/Dockerfile
-    target: opc-toolchain
+    target: comms-toolchain
   init: true
   stdin_open: true
   tty: true
   working_dir: /workspace
   entrypoint:
     - /bin/bash
-    - /workspace/scripts/start-opc-node.sh
-  networks:
-    - commdev-opc
+    - /workspace/scripts/start-board.sh
 
-x-opc-common-env: &opc-common-env
-  OPC_BIND_HOST: 0.0.0.0
-  OPC_NAMESPACE: ${OPC_NAMESPACE:-urn:commdev:opcua}
-  OPC_LOG_LEVEL: ${OPC_LOG_LEVEL:-info}
+x-board-common-env: &board-common-env
+  COMM_LOG_LEVEL: ${COMM_LOG_LEVEL:-info}
+  OPCUA_NAMESPACE: ${OPCUA_NAMESPACE:-urn:commdev:opcua}
 
 services:
-  opc-node-a:
-    <<: *opc-node
-    hostname: opc-node-a
+  board-a:
+    <<: *board-service
+    hostname: board-a
     environment:
-      <<: *opc-common-env
-      OPC_ROLE: server
-      OPC_INSTANCE_NAME: opc-node-a
-      OPC_PORT: 4840
-      OPC_ENDPOINT: opc.tcp://opc-node-a:4840
-      OPC_PEER_ENDPOINT: opc.tcp://opc-node-b:4841
-      OPC_DATA_DIR: /var/lib/opcua/data
-      OPC_PKI_DIR: /var/lib/opcua/pki
-    ports:
-      - "${OPC_NODE_A_HOST_PORT:-4840}:4840"
-    volumes:
-      - opc-node-a-data:/var/lib/opcua/data
-      - opc-node-a-pki:/var/lib/opcua/pki
+      <<: *board-common-env
+      COMM_ROLE: server
+      COMM_INSTANCE_NAME: board-a
+      COMM_PORT: 4840
+      COMM_ENDPOINT: opc.tcp://${BOARD_A_IPV4_ADDRESS:-192.168.10.10}:4840
+      COMM_PEER_ENDPOINT: opc.tcp://${BOARD_B_IPV4_ADDRESS:-192.168.10.11}:4840
+    networks:
+      commdev-comms:
+        ipv4_address: ${BOARD_A_IPV4_ADDRESS:-192.168.10.10}
 
-  opc-node-b:
-    <<: *opc-node
-    hostname: opc-node-b
+  board-b:
+    <<: *board-service
+    hostname: board-b
     environment:
-      <<: *opc-common-env
-      OPC_ROLE: client
-      OPC_INSTANCE_NAME: opc-node-b
-      OPC_PORT: 4841
-      OPC_ENDPOINT: opc.tcp://opc-node-b:4841
-      OPC_PEER_ENDPOINT: opc.tcp://opc-node-a:4840
-      OPC_DATA_DIR: /var/lib/opcua/data
-      OPC_PKI_DIR: /var/lib/opcua/pki
-    ports:
-      - "${OPC_NODE_B_HOST_PORT:-4841}:4841"
-    volumes:
-      - opc-node-b-data:/var/lib/opcua/data
-      - opc-node-b-pki:/var/lib/opcua/pki
-
-volumes:
-  opc-node-a-data:
-  opc-node-a-pki:
-  opc-node-b-data:
-  opc-node-b-pki:
+      <<: *board-common-env
+      COMM_ROLE: client
+      COMM_INSTANCE_NAME: board-b
+      COMM_PORT: 4840
+      COMM_ENDPOINT: opc.tcp://${BOARD_B_IPV4_ADDRESS:-192.168.10.11}:4840
+      COMM_PEER_ENDPOINT: opc.tcp://${BOARD_A_IPV4_ADDRESS:-192.168.10.10}:4840
+    networks:
+      commdev-comms:
+        ipv4_address: ${BOARD_B_IPV4_ADDRESS:-192.168.10.11}
 
 networks:
-  commdev-opc:
+  commdev-comms:
     external: true
-    name: commdev-opc-net
+    name: ${COMMDEV_COMMS_NETWORK:-commdev-comms-net}

@@ -1,5 +1,5 @@
 {
-  "name": "CommDev OPC UA",
+  "name": "CommDev Communication",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "..",
@@ -8,10 +8,10 @@
   "workspaceFolder": "/workspaces/CommDev",
   "overrideCommand": true,
   "remoteUser": "vscode",
-  "initializeCommand": "docker network inspect commdev-opc-net >/dev/null 2>&1 || docker network create commdev-opc-net",
+  "initializeCommand": "docker network inspect commdev-comms-net >/dev/null 2>&1 || docker network create --driver bridge --subnet 192.168.10.0/24 --gateway 192.168.10.1 commdev-comms-net",
   "runArgs": [
     "--init",
-    "--network=commdev-opc-net",
+    "--network=commdev-comms-net",
     "--add-host=host.docker.internal:host-gateway"
   ],
   "features": {
@@ -21,7 +21,7 @@
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
   "containerEnv": {
-    "COMMDEV_SHARED_NETWORK": "commdev-opc-net",
+    "COMMDEV_COMMS_NETWORK": "commdev-comms-net",
     "COMMDEV_TESTBED_COMPOSE_FILE": "/workspaces/CommDev/compose.testbed.yml"
   },
   "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",

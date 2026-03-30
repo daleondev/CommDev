@@ -3,11 +3,11 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 compose_file="$repo_root/compose.testbed.yml"
-tmux_session_name="${COMMDEV_TESTBED_TMUX_SESSION:-commdev-testbed-live}"
-client_container_name="${COMMDEV_CLIENT_CONTAINER_NAME:-commdev-opc-node-b-live}"
-server_container_name="${COMMDEV_SERVER_CONTAINER_NAME:-commdev-opc-node-a-live}"
+tmux_session_name="${COMMDEV_TESTBED_TMUX_SESSION:-commdev-comms-live}"
+shared_network_name="${COMMDEV_COMMS_NETWORK:-commdev-comms-net}"
+shared_network_subnet="${COMMDEV_COMMS_SUBNET:-192.168.10.0/24}"
+shared_network_gateway="${COMMDEV_COMMS_GATEWAY:-192.168.10.1}"
 tmux_attach="${COMMDEV_TMUX_ATTACH:-1}"
-cleanup_on_exit="${COMMDEV_TESTBED_CLEANUP_ON_EXIT:-1}"
 
 compose_cmd=()
 docker_cmd=()
@@ -73,24 +73,8 @@ quote_command() {
   printf '%s' "${parts[*]}"
 }
 
-compose_run_command() {
-  local service="$1"
-  local name="$2"
-
-  quote_command \
-    "${compose_cmd[@]}" \
-    run \
-    --rm \
-    --no-deps \
-    --service-ports \
-    --use-aliases \
-    --name "$name" \
-    "$service"
-}
-
 cleanup_live_resources() {
   tmux kill-session -t "$tmux_session_name" 2>/dev/null || true
-  docker_cli rm -f "$client_container_name" "$server_container_name" >/dev/null 2>&1 || true
   docker_compose down --remove-orphans >/dev/null 2>&1 || true
 }
 
@@ -99,27 +83,71 @@ ensure_tmux() {
     return
   fi
 
-  echo "tmux is required for the live testbed console."
+  echo "tmux is required for the live communication console."
   echo "If this devcontainer was opened before tmux was added to the Dockerfile, rebuild or reopen the devcontainer first."
   exit 1
 }
 
+ensure_shared_network() {
+  local actual_subnet
+  local actual_gateway
+
+  if docker_cli network inspect "$shared_network_name" >/dev/null 2>&1; then
+    actual_subnet="$(docker_cli network inspect -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}' "$shared_network_name")"
+    actual_gateway="$(docker_cli network inspect -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}' "$shared_network_name")"
+
+    if [[ "$actual_subnet" != "$shared_network_subnet" || "$actual_gateway" != "$shared_network_gateway" ]]; then
+      echo "Shared network $shared_network_name exists with subnet=$actual_subnet gateway=$actual_gateway."
+      echo "Expected subnet=$shared_network_subnet gateway=$shared_network_gateway."
+      echo "Remove or recreate that network before starting the live testbed."
+      exit 1
+    fi
+
+    return
+  fi
+
+  docker_cli network create \
+    --driver bridge \
+    --subnet "$shared_network_subnet" \
+    --gateway "$shared_network_gateway" \
+    "$shared_network_name" >/dev/null
+}
+
 build_images() {
-  docker_compose build opc-node-a opc-node-b
+  docker_compose build board-a board-b
 }
 
 rebuild_images() {
-  docker_compose build --no-cache opc-node-a opc-node-b
+  docker_compose build --no-cache board-a board-b
+}
+
+prepare_live_containers() {
+  docker_compose create --force-recreate board-a board-b >/dev/null
+}
+
+compose_container_id() {
+  docker_compose ps -a -q "$1"
 }
 
 open_live_console() {
+  local board_a_container_id
+  local board_b_container_id
   local client_command
   local server_command
 
   ensure_tmux
+  prepare_live_containers
 
-  client_command="$(compose_run_command opc-node-b "$client_container_name")"
-  server_command="$(compose_run_command opc-node-a "$server_container_name")"
+  board_a_container_id="$(compose_container_id board-a)"
+  board_b_container_id="$(compose_container_id board-b)"
+
+  if [[ -z "$board_a_container_id" || -z "$board_b_container_id" ]]; then
+    echo "Failed to create the live board containers."
+    exit 1
+  fi
+
+  client_command="$(quote_command "${docker_cmd[@]}" start -ai "$board_b_container_id")"
+  server_command="$(quote_command "${docker_cmd[@]}" start -ai "$board_a_container_id")"
 
   tmux kill-session -t "$tmux_session_name" 2>/dev/null || true
   tmux new-session -d -x 240 -y 60 -s "$tmux_session_name" -n live "$client_command"
@@ -132,11 +160,11 @@ open_live_console() {
     return
   fi
 
-  if [[ "$cleanup_on_exit" == "1" ]]; then
-    trap cleanup_live_resources EXIT INT TERM
-  fi
-
+  set +e
   tmux attach-session -t "$tmux_session_name"
+  set -e
+
+  cleanup_live_resources
 }
 
 usage() {
@@ -144,8 +172,8 @@ usage() {
 Usage: ./scripts/testbed.sh [run|rebuild|down]
 
 Commands:
-  run      Build if needed and start the live tmux console
-  rebuild  Rebuild the images and start the live tmux console
+  run      Build if needed and start the live communication console
+  rebuild  Rebuild the images and start the live communication console
   down     Stop and remove any live testbed containers and tmux session
 EOF
 }
@@ -158,11 +186,13 @@ command="${1:-run}"
 case "$command" in
   run|up)
     cleanup_live_resources
+    ensure_shared_network
     build_images
     open_live_console
     ;;
   rebuild)
     cleanup_live_resources
+    ensure_shared_network
     rebuild_images
     open_live_console
     ;;

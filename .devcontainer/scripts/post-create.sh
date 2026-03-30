@@ -7,7 +7,7 @@ cat <<'EOF'
 Devcontainer ready.
 
 Next steps:
-1. Replace scripts/run-opc-app.sh with the command that starts your OPC UA application.
-2. Start the two-node testbed with ./scripts/testbed.sh up.
-3. Follow both nodes with ./scripts/testbed.sh logs.
+1. Replace scripts/run-sample-app.sh with the command that starts your sample communication application.
+2. Start the live communication testbed with ./scripts/testbed.sh run.
+3. Stop the live testbed with ./scripts/testbed.sh down.
 EOF

@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS opc-toolchain
+FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS comms-toolchain
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -65,6 +65,6 @@ ENV PATH="/opt/commdev-venv/bin:${PATH}"
 
 WORKDIR /workspaces/CommDev
 
-FROM opc-toolchain AS devcontainer
+FROM comms-toolchain AS devcontainer
 
 CMD ["sleep", "infinity"]

@@ -1,112 +1,96 @@
-# CommDev OPC UA Devcontainer
+# CommDev Communication Devcontainer
 
-This repository provides a VS Code devcontainer plus a two-node Docker testbed for OPC UA work.
+This repository is a generic two-application communication testbed that runs inside a VS Code devcontainer and opens both applications side by side in a live tmux session.
 
-The setup is intentionally split in two parts:
+The framework is generic:
 
-- The devcontainer gives you a stable development environment with Python, Node.js, C and C++ toolchains, network diagnostics, Docker CLI access, and tmux.
-- The testbed runs two copies of your application as `opc-node-a` and `opc-node-b` on the same Docker bridge network so they can talk to each other like deployed nodes.
+- two application containers, `board-a` and `board-b`
+- one live runner script, `scripts/testbed.sh`
+- one shared private network with fixed IP addresses
+- one current sample application pair, the OPC UA server and client in `apps/`
+
+The current sample apps are OPC UA only for demonstration. The framework around them is intended to stay generic so later application pairs, including STM32 emulations, can reuse the same runner and network model.
 
 ## What is included
 
-- `.devcontainer/devcontainer.json` wires VS Code into the workspace container.
+- `.devcontainer/devcontainer.json` connects the workspace container to the shared communication network.
 - `.devcontainer/Dockerfile` installs the common toolchain.
-- `compose.testbed.yml` defines the two application containers.
-- `scripts/testbed.sh` is the one live runner: it builds the images, starts both containers directly in tmux, and tears them down when you leave.
-- `scripts/start-opc-node.sh` injects per-node environment and launches the foreground app wrapper.
-- `scripts/run-opc-app.sh` starts the built-in demo server or client.
-- `apps/opcua_server.py` exposes a continuously running OPC UA server.
-- `apps/opcua_client.py` exposes a continuously running OPC UA client with an interactive `query` command.
+- `compose.testbed.yml` defines `board-a` and `board-b`.
+- `scripts/testbed.sh` is the one live runner.
+- `scripts/start-board.sh` starts a board container in the foreground.
+- `scripts/run-sample-app.sh` dispatches to the current sample server or client.
+- `apps/opcua_server.py` and `apps/opcua_client.py` are the current sample applications.
 
-## Workflow
+## Live workflow
 
 1. Open the folder in VS Code.
 2. Reopen in the devcontainer.
-3. Start the live testbed with `./scripts/testbed.sh`.
-4. A tmux window opens with the client on the left and the server on the right.
-5. Type `query` in the left pane to print the demo nodes from the server.
-6. Press `Ctrl+C` in either pane to stop that app. The tmux session closes and both live containers are cleaned up.
+3. Run `./scripts/testbed.sh`.
+4. A tmux window opens with `board-b` on the left and `board-a` on the right.
+5. Type `query` in the left pane to read the sample OPC UA nodes from the peer.
+6. Press `Ctrl+C` in either pane to stop that board. The tmux session closes and the live testbed containers are removed.
 
-The testbed containers bake the demo code into the image, so after changing the Python apps or scripts you should run `./scripts/testbed.sh rebuild`.
+Nothing is left running in detached mode. If you detach from tmux, the script immediately cleans the live containers up.
 
-VS Code tasks are included for the same commands under the `Testbed:` prefix. `Testbed: Run Live` is the normal entry point.
+After changing scripts or sample apps, run `./scripts/testbed.sh rebuild`.
+
+## Static network model
+
+The live boards run on a fixed private Docker network:
+
+- network: `commdev-comms-net`
+- subnet: `192.168.10.0/24`
+- gateway: `192.168.10.1`
+- `board-a`: `192.168.10.10`
+- `board-b`: `192.168.10.11`
+
+There is no host port publishing. The sample apps communicate only over the shared board network, which makes the setup closer to real separate devices.
 
 ## Runtime contract
 
-Each node receives a fixed set of environment variables:
+The framework passes these generic environment variables to each board:
 
-- `OPC_INSTANCE_NAME`
-- `OPC_BIND_HOST`
-- `OPC_PORT`
-- `OPC_ENDPOINT`
-- `OPC_PEER_ENDPOINT`
-- `OPC_DATA_DIR`
-- `OPC_PKI_DIR`
-- `OPC_NAMESPACE`
-- `OPC_LOG_LEVEL`
+- `COMM_ROLE`
+- `COMM_INSTANCE_NAME`
+- `COMM_PORT`
+- `COMM_ENDPOINT`
+- `COMM_PEER_ENDPOINT`
+- `COMM_LOG_LEVEL`
 
-The built-in demo uses `OPC_ROLE` to choose whether a node runs the server or the client.
+The current sample apps also use one sample-specific variable:
 
-Default endpoints are:
+- `OPCUA_NAMESPACE`
 
-- `opc-node-a`: `opc.tcp://opc-node-a:4840`
-- `opc-node-b`: `opc.tcp://opc-node-b:4841`
+Current defaults are:
 
-The devcontainer joins the same `commdev-opc-net` bridge network, so code you run inside VS Code can also reach both nodes by service name.
+- `board-a` endpoint: `opc.tcp://192.168.10.10:4840`
+- `board-b` endpoint: `opc.tcp://192.168.10.11:4840`
 
-## Live Console
+`board-b` currently acts as the client sample and connects to `board-a`.
 
-`./scripts/testbed.sh` creates one tmux window with a vertical split:
+## Current sample app behavior
 
-- left pane: the foreground client process
-- right pane: the foreground server process
-
-Nothing is started in detached mode. The pane commands themselves launch the containers, and leaving the tmux session cleans those live containers up.
-
-The client pane accepts interactive commands while it keeps running:
+The sample client keeps running in the foreground and accepts interactive commands:
 
 - `query` prints `CommDevDemo/Heartbeat`, `CommDevDemo/Command`, and `CommDevDemo/Ack`
 - `query CommDevDemo/Ack` prints a specific node
 - `help` prints the available interactive commands
 
-The standalone client subcommands still work if you want them:
+The sample server stays in the foreground and logs startup plus detected peer activity.
+
+The standalone sample commands still work if you need them inside a board container:
 
 - `python3 -u /workspace/apps/opcua_client.py browse --depth 2 --include-values`
 - `python3 -u /workspace/apps/opcua_client.py read CommDevDemo/Heartbeat CommDevDemo/Command CommDevDemo/Ack`
 
-## Example runner shape
+## Tasks
 
-The default wiring is:
+The VS Code tasks are:
 
-- `opc-node-a` runs the demo server.
-- `opc-node-b` runs the demo client against `opc-node-a`.
+- `Comms: Run Live`
+- `Comms: Rebuild Live`
+- `Comms: Down`
 
-If you want to replace the demo with your own implementation, update `scripts/run-opc-app.sh` with a shell wrapper around your real entrypoint. For example:
+## Replacing the sample apps later
 
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-exec python -m your_package.main \
-  --name "$OPC_INSTANCE_NAME" \
-  --host "$OPC_BIND_HOST" \
-  --port "$OPC_PORT" \
-  --endpoint "$OPC_ENDPOINT" \
-  --peer "$OPC_PEER_ENDPOINT"
-```
-
-The same pattern works for Node.js, CMake-built binaries, or any other runtime as long as this wrapper starts the process in the foreground.
-
-## Verifying the demo
-
-When the testbed is healthy, the panes and logs should show:
-
-- the server coming online on `opc.tcp://opc-node-a:4840`
-- the client connecting to `opc-node-a`
-- repeated `verified ack=...` messages from the client
-- `query ... => ...` output when you type `query` in the left pane
-- lightweight server-side client activity messages in the right pane
-
-## Optional overrides
-
-If you want different host ports, namespace, or log level, copy `.env.example` to `.env` and adjust the values there.
+When you swap the OPC UA sample out for another application pair, the main handoff point is `scripts/run-sample-app.sh`. The goal is to keep the board names, live tmux runner, and static network model intact while only changing the applications that each board starts.

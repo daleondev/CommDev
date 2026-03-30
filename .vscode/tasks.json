@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Testbed: Run Live",
+            "label": "Comms: Run Live",
             "type": "shell",
             "command": "bash",
             "args": [
@@ -11,7 +11,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Testbed: Rebuild Live",
+            "label": "Comms: Rebuild Live",
             "type": "shell",
             "command": "bash",
             "args": [
@@ -21,7 +21,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Testbed: Down",
+            "label": "Comms: Down",
             "type": "shell",
             "command": "bash",
             "args": [

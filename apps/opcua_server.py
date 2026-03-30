@@ -21,13 +21,13 @@ def log(instance_name: str, message: str) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CommDev OPC UA demo server")
+    parser = argparse.ArgumentParser(description="CommDev sample OPC UA server")
     parser.add_argument("command", nargs="?", choices=["serve"], default="serve")
-    parser.add_argument("--instance-name", default=env_default("OPC_INSTANCE_NAME", "opc-node-a"))
-    parser.add_argument("--endpoint", default=env_default("OPC_ENDPOINT", "opc.tcp://opc-node-a:4840"))
-    parser.add_argument("--namespace", default=env_default("OPC_NAMESPACE", "urn:commdev:opcua"))
-    parser.add_argument("--port", type=int, default=int(env_default("OPC_PORT", "4840")))
-    parser.add_argument("--log-level", default=env_default("OPC_LOG_LEVEL", "info"))
+    parser.add_argument("--instance-name", default=env_default("COMM_INSTANCE_NAME", "board-a"))
+    parser.add_argument("--endpoint", default=env_default("COMM_ENDPOINT", "opc.tcp://192.168.10.10:4840"))
+    parser.add_argument("--namespace", default=env_default("OPCUA_NAMESPACE", "urn:commdev:opcua"))
+    parser.add_argument("--port", type=int, default=int(env_default("COMM_PORT", "4840")))
+    parser.add_argument("--log-level", default=env_default("COMM_LOG_LEVEL", "info"))
     parser.add_argument("--heartbeat-interval", type=float, default=1.0)
     parser.add_argument("--activity-timeout", type=float, default=8.0)
     return parser
@@ -37,7 +37,7 @@ async def serve(args: argparse.Namespace) -> None:
     server = Server()
     await server.init()
     server.set_endpoint(args.endpoint)
-    server.set_server_name(f"{args.instance_name} demo server")
+    server.set_server_name(f"{args.instance_name} sample OPC UA server")
     server.set_security_policy([ua.SecurityPolicyType.NoSecurity])
 
     namespace_index = await server.register_namespace(args.namespace)
