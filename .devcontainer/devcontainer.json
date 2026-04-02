@@ -21,8 +21,7 @@
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
   "containerEnv": {
-    "COMMDEV_COMMS_NETWORK": "commdev-comms-net",
-    "COMMDEV_TESTBED_COMPOSE_FILE": "/workspaces/CommDev/compose.testbed.yml"
+    "COMMDEV_COMMS_NETWORK": "commdev-comms-net"
   },
   "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
   "customizations": {

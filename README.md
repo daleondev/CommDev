@@ -2,6 +2,8 @@
 
 This repository is a generic two-application communication testbed that runs inside a VS Code devcontainer and opens both applications side by side in a live tmux session.
 
+The live testbed only needs the Docker CLI.
+
 The framework is generic:
 
 - two application containers, `board-a` and `board-b`
@@ -15,8 +17,7 @@ The current sample apps are OPC UA only for demonstration. The framework around 
 
 - `.devcontainer/devcontainer.json` connects the workspace container to the shared communication network.
 - `.devcontainer/Dockerfile` installs the common toolchain.
-- `compose.testbed.yml` defines `board-a` and `board-b`.
-- `scripts/testbed.sh` is the one live runner.
+- `scripts/testbed.sh` builds the testbed image, creates `board-a` and `board-b`, and opens the live tmux session.
 - `scripts/start-board.sh` starts a board container in the foreground.
 - `scripts/run-sample-app.sh` dispatches to the current sample server or client.
 - `apps/opcua_server.py` and `apps/opcua_client.py` are the current sample applications.
@@ -33,6 +34,8 @@ The current sample apps are OPC UA only for demonstration. The framework around 
 Nothing is left running in detached mode. If you detach from tmux, the script immediately cleans the live containers up.
 
 After changing scripts or sample apps, run `./scripts/testbed.sh rebuild`.
+
+Container names are derived from `COMMDEV_TESTBED_NAME`, so the default containers are `commdev-comms-testbed-board-a` and `commdev-comms-testbed-board-b`.
 
 ## Static network model
 
