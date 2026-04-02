@@ -23,7 +23,7 @@
   "containerEnv": {
     "COMMDEV_COMMS_NETWORK": "commdev-comms-net"
   },
-  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  "postCreateCommand": "python3 .devcontainer/scripts/post_create.py",
   "customizations": {
     "vscode": {
       "extensions": [

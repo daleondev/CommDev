@@ -4,18 +4,18 @@
         {
             "label": "Comms: Run Live",
             "type": "shell",
-            "command": "bash",
+            "command": "python3",
             "args": [
-                "./scripts/testbed.sh"
+                "./scripts/testbed.py"
             ],
             "problemMatcher": []
         },
         {
             "label": "Comms: Rebuild Live",
             "type": "shell",
-            "command": "bash",
+            "command": "python3",
             "args": [
-                "./scripts/testbed.sh",
+                "./scripts/testbed.py",
                 "rebuild"
             ],
             "problemMatcher": []
@@ -23,9 +23,9 @@
         {
             "label": "Comms: Down",
             "type": "shell",
-            "command": "bash",
+            "command": "python3",
             "args": [
-                "./scripts/testbed.sh",
+                "./scripts/testbed.py",
                 "down"
             ],
             "problemMatcher": []

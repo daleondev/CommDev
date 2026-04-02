@@ -7,7 +7,7 @@ The live testbed only needs the Docker CLI.
 The framework is generic:
 
 - two application containers, `board-a` and `board-b`
-- one live runner script, `scripts/testbed.sh`
+- one live runner script, `scripts/testbed.py`
 - one shared private network with fixed IP addresses
 - one current sample application pair, the OPC UA server and client in `apps/`
 
@@ -17,23 +17,22 @@ The current sample apps are OPC UA only for demonstration. The framework around 
 
 - `.devcontainer/devcontainer.json` connects the workspace container to the shared communication network.
 - `.devcontainer/Dockerfile` installs the common toolchain.
-- `scripts/testbed.sh` builds the testbed image, creates `board-a` and `board-b`, and opens the live tmux session.
-- `scripts/start-board.sh` starts a board container in the foreground.
-- `scripts/run-sample-app.sh` dispatches to the current sample server or client.
+- `scripts/testbed.py` builds the testbed image, creates `board-a` and `board-b`, and opens the live tmux session.
+- `scripts/run_sample_app.py` is the in-container entrypoint and dispatches to the current sample server or client.
 - `apps/opcua_server.py` and `apps/opcua_client.py` are the current sample applications.
 
 ## Live workflow
 
 1. Open the folder in VS Code.
 2. Reopen in the devcontainer.
-3. Run `./scripts/testbed.sh`.
+3. Run `python3 ./scripts/testbed.py`.
 4. A tmux window opens with `board-b` on the left and `board-a` on the right.
 5. Type `query` in the left pane to read the sample OPC UA nodes from the peer.
 6. Press `Ctrl+C` in either pane to stop that board. The tmux session closes and the live testbed containers are removed.
 
 Nothing is left running in detached mode. If you detach from tmux, the script immediately cleans the live containers up.
 
-After changing scripts or sample apps, run `./scripts/testbed.sh rebuild`.
+`python3 ./scripts/testbed.py` does a normal cached build before starting. Use `python3 ./scripts/testbed.py rebuild` when you need a no-cache rebuild.
 
 Container names are derived from `COMMDEV_TESTBED_NAME`, so the default containers are `commdev-comms-testbed-board-a` and `commdev-comms-testbed-board-b`.
 
@@ -96,4 +95,4 @@ The VS Code tasks are:
 
 ## Replacing the sample apps later
 
-When you swap the OPC UA sample out for another application pair, the main handoff point is `scripts/run-sample-app.sh`. The goal is to keep the board names, live tmux runner, and static network model intact while only changing the applications that each board starts.
+When you swap the OPC UA sample out for another application pair, the main handoff point is `scripts/run_sample_app.py`. The goal is to keep the board names, live tmux runner, and static network model intact while only changing the applications that each board starts.
